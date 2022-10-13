@@ -53,21 +53,19 @@ int main(int argc, char** argv)
     float frequency = 100.f, bandwidth = 200.f;
     uint16_t dmaChannel = 0;
     bool showUsage = true, loop = false, randomMode = false;
-    int opt, filesOffset, sleepInterval = 0;
+    int opt, filesOffset;
 
-    while ((opt = getopt(argc, argv, "rf:m:d:b:v")) != -1) {
+    while ((opt = getopt(argc, argv, "rf:d:b:v")) != -1) {
         switch (opt) {
             case 'r':
                 loop = true;
                 break;
-            case 'f':
-                frequency = std::stof(optarg);
-                break;
             case 'm':
                 randomMode = true;
                 break;
-            case 's':
-                sleepInterval = std::stoi(optarg);
+            case 'f':
+                frequency = std::stof(optarg);
+                break;0~https://github.com/baalansellers/fm_transmitter.git1~
             case 'd':
                 dmaChannel = std::stoi(optarg);
                 break;
@@ -113,11 +111,8 @@ int main(int argc, char** argv)
                 << ((header.channels > 0x01) ? "stereo" : "mono") << std::endl;
             transmitter->Transmit(reader, frequency, bandwidth, dmaChannel, optind < argc);
             if (randomMode) {
-                std::cout << "Sleeping a random amount of time..." << std::endl;
                 //Random interval of 1 and 15 minutes between transmissions
                 usleep(((rand() % 15) + 1) * 60000000);
-            } else if  (sleepInterval > 0) {
-                usleep(sleepInterval * 60000000);
             }
         } while (!stop && (optind < argc));
     } catch (std::exception &catched) {
