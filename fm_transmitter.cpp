@@ -51,11 +51,11 @@ void sigIntHandler(int sigNum)
 int main(int argc, char** argv)
 {
     float frequency = 100.f, bandwidth = 200.f;
-    uint16_t dmaChannel = 0;
+    uint16_t dmaChannel = 0, sleepInterval = 0;
     bool showUsage = true, loop = false, randomMode = false;
-    int opt, filesOffset, sleepInterval = 0;
+    int opt, filesOffset;
 
-    while ((opt = getopt(argc, argv, "rf:m:d:b:v")) != -1) {
+    while ((opt = getopt(argc, argv, "rf:m:s:d:b:v")) != -1) {
         switch (opt) {
             case 'r':
                 loop = true;
@@ -68,6 +68,7 @@ int main(int argc, char** argv)
                 break;
             case 's':
                 sleepInterval = std::stoi(optarg);
+                break;
             case 'd':
                 dmaChannel = std::stoi(optarg);
                 break;
@@ -99,7 +100,7 @@ int main(int argc, char** argv)
             << bandwidth << " kHz bandwidth" << std::endl;
         do {
             std::string filename = argv[optind++];
-            if ((optind == argc) && loop) {
+            if ((optind == argc) && (loop || randomMode || sleepInterval > 0)) {
                 optind = filesOffset;
             }
             WaveReader reader(filename != "-" ? filename : std::string(), stop);
@@ -108,15 +109,17 @@ int main(int argc, char** argv)
                 << header.sampleRate << " Hz, "
                 << header.bitsPerSample << " bits, "
                 << ((header.channels > 0x01) ? "stereo" : "mono") << std::endl;
-            transmitter->Transmit(reader, frequency, bandwidth, dmaChannel, optind < argc);
-            if (randomMode) {
-                std::cout << "Sleeping a random amount of time..." << std::endl;
-                //Random interval of 1 and 15 minutes between transmissions
+            transmitter->Transmit(reader, frequency, bandwidth, dmaChannel, loop);
+            if (!stop && randomMode) {
+                std::cout << "Sleeping a random amount of minutes from 1 to 15..." << std::endl;
                 usleep(((rand() % 15) + 1) * 60000000);
-            } else if  (sleepInterval > 0) {
+                std::cout << "Waking up..." << std::endl;
+            } else if  (!stop && sleepInterval > 0) {
+                std::cout << "Sleeping " << sleepInterval << " minutes..." << std::endl;
                 usleep(sleepInterval * 60000000);
+                std::cout << "Waking up..." << std::endl;
             }
-        } while (!stop && (optind < argc));
+        } while (!stop && (optind < argc || randomMode || sleepInterval > 0));
     } catch (std::exception &catched) {
         std::cout << "Error: " << catched.what() << std::endl;
         result = EXIT_FAILURE;
