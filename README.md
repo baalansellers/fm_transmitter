@@ -1,3 +1,8 @@
+## Changes from Original
+Added an interval loop mode for use in an amateur radio fox hunt. There are two new command line arguments:
+* -m - loop, but sleeps randomly between 1 and 15 minutes between transmissions
+* -s minute(s) - loop, but sleeps a given number of minutes between transmissions
+
 # FM Transmitter
 Use the Raspberry Pi as an FM transmitter. Works on every Raspberry Pi board.
 
