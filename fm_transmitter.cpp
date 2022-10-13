@@ -88,14 +88,11 @@ int main(int argc, char** argv)
         return 0;
     }
 
+    int result = EXIT_SUCCESS;
+
     std::signal(SIGINT, sigIntHandler);
     std::signal(SIGTSTP, sigIntHandler);
 
-    auto finally = [&]() {
-		auto temp = transmitter;
-        transmitter = nullptr;
-        delete temp;
-    };
     try {
         transmitter = new Transmitter();
         std::cout << "Broadcasting at " << frequency << " MHz with "
@@ -122,10 +119,13 @@ int main(int argc, char** argv)
         } while (!stop && (optind < argc));
     } catch (std::exception &catched) {
         std::cout << "Error: " << catched.what() << std::endl;
-        finally();
-        return 1;
+        result = EXIT_FAILURE;
     }
-    finally();
+    if (transmitter != nullptr) {
+        auto temp = transmitter;
+        transmitter = nullptr;
+        delete temp;
+    }
 
-    return 0;
+    return result;
 }

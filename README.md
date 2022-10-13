@@ -1,3 +1,8 @@
+## Changes from Original
+Added an interval loop mode for use in an amateur radio fox hunt. There are two new command line arguments:
+* -m - loop, but sleeps randomly between 1 and 15 minutes between transmissions
+* -s minute(s) - loop, but sleeps a given number of minutes between transmissions
+
 # FM Transmitter
 Use the Raspberry Pi as an FM transmitter. Works on every Raspberry Pi board.
 
@@ -22,9 +27,9 @@ make
 ```
 After a successful build you can start transmitting by executing the "fm_transmitter" program:
 ```
-sudo ./fm_transmitter -f 102.0 acoustic_guitar_duet.wav
+sudo ./fm_transmitter -f 100.6 acoustic_guitar_duet.wav
 ```
-Where:
+Notice:
 * -f frequency - Specifies the frequency in MHz, 100.0 by default if not passed
 * acoustic_guitar_duet.wav - Sample WAV file, you can use your own
 
@@ -33,18 +38,34 @@ Other options:
 * -b bandwidth - Specifies the bandwidth in kHz, 100 by default
 * -r - Loops the playback
 
-After transmission has begun, simply tune an FM receiver to chosen frequency, You should hear the playback.
+After transmission has begun, simply tune an FM receiver to chosen frequency, you should hear the playback.
 ### Raspberry Pi 4
 On Raspberry Pi 4 other built-in hardware probably interfers somehow with this software making transmitting not possible on all standard FM broadcasting frequencies. In this case it is recommended to:
 1. Compile executable with option to use GPIO21 instead of GPIO4 (PIN 40 on GPIO header):
 ```
 make GPIO21=1
 ```
-2. Change either ARM core frequency scaling governor settings to "performance" or to change ARM minimum and maximum core frequencies to one constant value (see: https://www.raspberrypi.org/forums/viewtopic.php?t=152692 ).
+2. Changing either ARM core frequency scaling governor settings to "powersave" or changing ARM minimum and maximum core frequencies to one constant value (see: https://www.raspberrypi.org/forums/viewtopic.php?t=152692 ).
 ```
-echo "performance"| sudo tee /sys/devices/system/cpu/cpu0/cpufreq/scaling_governor
+echo "powersave"| sudo tee /sys/devices/system/cpu/cpu0/cpufreq/scaling_governor
 ```
 3. Using lower FM broadcasting frequencies (below 93 MHz) when transmitting.
+### Use as general audio output device
+[hydranix](https://github.com/markondej/fm_transmitter/issues/144) has came up with simple method of using transmitter as an general audio output device. In order to achieve this you should load "snd-aloop" module and stream output from loopback device to transmitter application:
+```
+sudo modprobe snd-aloop
+arecord -D hw:1,1,0 -c 1 -d 0 -r 22050 -f S16_LE | sudo ./fm_transmitter -f 100.6 - &
+```
+Please keep in mind loopback device should be set default ALSA device (see [this article](https://www.alsa-project.org/wiki/Setting_the_default_device)). Also parameter "-D hw:X,1,0" should be pointing this device (use card number instead of "X").
+### Microphone support
+In order to use a microphone live input use the `arecord` command, eg.:
+```
+arecord -D hw:1,0 -c 1 -d 0 -r 22050 -f S16_LE | sudo ./fm_transmitter -f 100.6 -
+```
+In cases of a performance drop down use ```plughw:1,0``` instead of ```hw:1,0``` like this:
+```
+arecord -D plughw:1,0 -c 1 -d 0 -r 22050 -f S16_LE | sudo ./fm_transmitter -f 100.6 -
+```
 ### Supported audio formats
 You can transmitt uncompressed WAV (.wav) files directly or read audio data from stdin, eg. using MP3 file:
 ```
@@ -61,15 +82,6 @@ Or you could also use FFMPEG:
 ```
 ffmpeg -i example.webm -f wav -bitexact -acodec pcm_s16le -ar 22050 -ac 1 converted-example.wav
 sudo ./fm_transmitter -f 100.6 converted-example.wav
-```
-### Microphone support
-In order to use a microphone live input use the `arecord` command, eg.:
-```
-arecord -D hw:1,0 -c1 -d 0 -r 22050 -f S16_LE | sudo ./fm_transmitter -f 100.6 -
-```
-In cases of a performance drop down use ```plughw:1,0``` instead of ```hw:1,0``` like this:
-```
-arecord -D plughw:1,0 -c1 -d 0 -r 22050 -f S16_LE | sudo ./fm_transmitter -f 100.6 -
 ```
 ## Legal note
 Please keep in mind that transmitting on certain frequencies without special permissions may be illegal in your country.
